@@ -453,7 +453,7 @@ function render() {
     panel('Withdrawing', outs, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.group)}
       <span class="meta">${fmtDate(k.withdrawal)} — ${esc(k.reason || 'no reason given')}</span></div>`) +
     panel('Starting soon (reserved)', snap.future, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.groupAtStart)}
-      <span class="meta">starts ${fmtDate(k.start)} at ${k.ageAtStart} mo</span></div>`);
+      <span class="meta">starts ${fmtDate(k.start)}</span></div>`);
 }
 
 // wiring
