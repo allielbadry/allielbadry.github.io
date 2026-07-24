@@ -333,7 +333,7 @@ let overrides = {}; // kid key -> room name (custom what-if view)
 const kidKey = k => k.name + '|' + (k.dob ? k.dob.getTime() : '');
 
 // Re-seat overridden kids, then recompute staff/over flags per room.
-// Ratio follows the strictest (youngest) group present in the room.
+// Ratio is fixed per room, regardless of which kids are dragged in.
 function applyOverrides(snap) {
   for (const room of snap.rooms) {
     const stay = [], move = [];
@@ -350,7 +350,7 @@ function applyOverrides(snap) {
   }
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
-    const ratio = Math.min(GROUPS[room.group].ratio, ...room.kids.map(k => GROUPS[k.group].ratio));
+    const ratio = GROUPS[room.group].ratio;
     room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
     room.over = room.kids.length > room.cap;
     room.staff = Math.ceil(room.kids.length / ratio);
