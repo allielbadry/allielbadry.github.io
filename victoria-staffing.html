@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Victoria Staffing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #FBF9F4;
+    --card: #FFFFFF;
+    --ink: #26303B;
+    --ink-soft: #6B7280;
+    --line: #E8E4DA;
+    --infant: #E8705F;
+    --toddler: #DFA032;
+    --senior: #2F9C8A;
+    --flag: #D64545;
+    --infant-soft: #FCEEEC;
+    --toddler-soft: #FAF1DE;
+    --senior-soft: #E4F2EF;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  h1, h2, h3, .display { font-family: 'Bricolage Grotesque', 'Inter', sans-serif; }
+
+  .topbar {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--line);
+    background: var(--card);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .topbar .logo { width: 32px; height: 32px; border-radius: 6px; }
+  .topbar h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  .topbar h1 span { color: var(--senior); }
+  .topbar .spacer { flex: 1; }
+
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-nav button {
+    width: 34px; height: 34px; border: 1px solid var(--line); background: var(--card);
+    border-radius: 8px; cursor: pointer; font-size: 16px; color: var(--ink);
+  }
+  .month-nav button:hover { background: var(--paper); }
+  .month-nav select {
+    font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 16px;
+    padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px;
+    background: var(--card); color: var(--ink); cursor: pointer;
+  }
+  .btn-upload {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--ink);
+    background: var(--ink); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-upload:hover { opacity: .88; }
+  input[type=file] { display: none; }
+  .file-note { font-size: 12px; color: var(--ink-soft); }
+
+  /* Drop zone (empty state) */
+  .dropzone {
+    margin: 60px auto; max-width: 520px; padding: 60px 40px;
+    border: 2px dashed var(--line); border-radius: 16px; text-align: center;
+    background: var(--card); cursor: pointer; transition: border-color .15s;
+  }
+  .dropzone.drag { border-color: var(--senior); background: var(--senior-soft); }
+  .dropzone h2 { font-size: 26px; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .dropzone p { color: var(--ink-soft); }
+
+  main { padding: 24px 28px 60px; max-width: 1240px; margin: 0 auto; }
+
+  /* Summary strip */
+  .summary { display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+  .stat {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 14px 20px; min-width: 130px;
+  }
+  .stat .num { font-family: 'Bricolage Grotesque', sans-serif; font-size: 30px; font-weight: 700; line-height: 1.1; }
+  .stat .lbl { font-size: 12px; color: var(--ink-soft); font-weight: 500; }
+  .stat.g-infant { border-top: 3px solid var(--infant); }
+  .stat.g-toddler { border-top: 3px solid var(--toddler); }
+  .stat.g-senior { border-top: 3px solid var(--senior); }
+  .stat.g-staff { border-top: 3px solid var(--ink); }
+
+  /* Room cards */
+  .rooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+  .room {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px;
+  }
+  .room.over { border-color: var(--flag); box-shadow: 0 0 0 3px rgba(214,69,69,.12); }
+  .room-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+  .room-head h3 { font-size: 17px; font-weight: 700; letter-spacing: -0.01em; }
+  .room-head .range { font-size: 12px; color: var(--ink-soft); }
+  .room-head .count { margin-left: auto; font-size: 13px; font-weight: 600; }
+  .room-staff { font-size: 12.5px; margin-bottom: 12px; color: var(--ink-soft); }
+  .room-staff b { color: var(--ink); font-size: 14px; }
+  .overflag { color: var(--flag); font-weight: 600; font-size: 12.5px; }
+
+  .dots { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; margin-bottom: 14px; max-width: 320px; }
+  .dot {
+    aspect-ratio: 1; border-radius: 50%;
+    border: 1.5px solid var(--line); background: transparent;
+  }
+  .dot.filled.c-infant { background: var(--infant); border-color: var(--infant); }
+  .dot.filled.c-toddler { background: var(--toddler); border-color: var(--toddler); }
+  .dot.filled.c-senior { background: var(--senior); border-color: var(--senior); }
+  .dot.overcap { background: var(--flag) !important; border-color: var(--flag) !important; }
+
+  .kids { display: flex; flex-direction: column; gap: 3px; }
+  .kid {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    padding: 4px 8px; border-radius: 7px; font-size: 13px;
+  }
+  .kid:nth-child(odd) { background: var(--paper); }
+  .kid[draggable] { cursor: grab; }
+  .kid.dragging { opacity: .4; }
+  .room.droptarget { border-color: var(--ink); box-shadow: 0 0 0 3px rgba(38,48,59,.10); }
+  .b-moved { background: #E4E9F2; color: #3D5A99; }
+  .btn-reset {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--flag);
+    background: var(--card); color: var(--flag); font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-reset:hover { background: #FBE7E7; }
+  .btn-export {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--ink);
+    background: var(--card); color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-export:hover { background: var(--bg); }
+  .kid .age { color: var(--ink-soft); font-variant-numeric: tabular-nums; min-width: 40px; text-align: right; margin-left: auto; }
+  .kid .name { font-weight: 500; min-width: 0; overflow-wrap: anywhere; }
+  .kid.withdrawing .name { text-decoration: line-through; color: var(--ink-soft); }
+  .badge {
+    font-size: 10.5px; font-weight: 700; padding: 1.5px 7px; border-radius: 20px; white-space: nowrap;
+  }
+  .b-new { background: var(--senior-soft); color: var(--senior); }
+  .b-up { background: var(--toddler-soft); color: #A9720F; }
+  .b-over { background: #FBE7E7; color: var(--flag); }
+  .b-grad { background: #EDE9FB; color: #6D5BC7; }
+  .b-out { background: #FBE7E7; color: var(--flag); }
+
+  /* Month panel */
+  .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; margin-top: 28px; }
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
+  .panel h3 { font-size: 15px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .panel h3 .n { font-size: 12px; background: var(--paper); border: 1px solid var(--line); border-radius: 20px; padding: 1px 9px; }
+  .panel .empty { color: var(--ink-soft); font-size: 13px; }
+  .prow { display: flex; align-items: baseline; gap: 8px; padding: 5px 0; border-bottom: 1px solid var(--paper); font-size: 13px; flex-wrap: wrap; }
+  .prow:last-child { border-bottom: none; }
+  .prow .name { font-weight: 600; overflow-wrap: anywhere; }
+  .prow .meta { color: var(--ink-soft); font-size: 12px; }
+  .gtag { font-size: 10.5px; font-weight: 700; padding: 1.5px 8px; border-radius: 20px; }
+  .gt-infant { background: var(--infant-soft); color: var(--infant); }
+  .gt-toddler { background: var(--toddler-soft); color: #A9720F; }
+  .gt-senior { background: var(--senior-soft); color: var(--senior); }
+
+  .section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); margin: 30px 0 12px; }
+
+  @media (max-width: 640px) {
+    .topbar, main { padding-left: 16px; padding-right: 16px; }
+    .dots { grid-template-columns: repeat(8, 1fr); }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .room, .stat, .panel { animation: rise .25s ease both; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+  }
+  button:focus-visible, select:focus-visible, .dropzone:focus-visible, .btn-upload:focus-within { outline: 2px solid var(--senior); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <img class="logo" src="data:image/png;base64,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" alt="">
+  <h1>Victoria <span>Staffing</span></h1>
+  <div class="spacer"></div>
+  <div class="month-nav" id="monthNav" hidden>
+    <button id="prevM" aria-label="Previous month">‹</button>
+    <select id="monthSel" aria-label="Viewed month"></select>
+    <button id="nextM" aria-label="Next month">›</button>
+  </div>
+  <button class="btn-reset" id="resetView" hidden>Reset view</button>
+  <button class="btn-export" id="exportX" hidden>Export Excel</button>
+  <label class="btn-upload">Upload CSV<input type="file" id="fileInput" accept=".csv"></label>
+</header>
+
+<div class="dropzone" id="dropzone" tabindex="0">
+  <h2>Drop the enrollment CSV here</h2>
+  <p>Child Name, Program, DOB, Enrollment Start Date, Withdrawal Date, Withdrawal Reason, Child Status</p>
+</div>
+
+<main id="app" hidden>
+  <div class="summary" id="summary"></div>
+  <div class="section-title">Rooms</div>
+  <div class="rooms" id="rooms"></div>
+  <div class="section-title" id="panelTitle">This month</div>
+  <div class="panel-grid" id="panels"></div>
+</main>
+
+<script>
+// === LOGIC START ===
+const GROUPS = {
+  infant:  { label: 'Infant',  range: '0–18 mo',  ratio: 4, rooms: [{ name: 'Infant Room', cap: 12 }] },
+  toddler: { label: 'Toddler', range: '19–35 mo', ratio: 4, rooms: [{ name: 'Toddler 1', cap: 12 }, { name: 'Toddler 2', cap: 12 }] },
+  senior:  { label: 'Senior Preschool', range: '36+ mo', ratio: 8, rooms: [{ name: 'Senior 1', cap: 24 }, { name: 'Senior 2', cap: 24 }, { name: 'Senior 3', cap: 24 }] },
+};
+const GROUP_ORDER = ['infant', 'toddler', 'senior'];
+
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQ) {
+      if (c === '"') { if (text[i+1] === '"') { field += '"'; i++; } else inQ = false; }
+      else field += c;
+    } else if (c === '"') inQ = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && text[i+1] === '\n') i++;
+      row.push(field); field = '';
+      if (row.some(f => f.trim() !== '')) rows.push(row);
+      row = [];
+    } else field += c;
+  }
+  if (field !== '' || row.length) { row.push(field); if (row.some(f => f.trim() !== '')) rows.push(row); }
+  return rows;
+}
+
+function parseDate(s) { // MM/DD/YYYY -> Date or null
+  if (!s || !s.trim()) return null;
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m ? new Date(+m[3], +m[1] - 1, +m[2]) : null;
+}
+
+function loadChildren(text) {
+  const rows = parseCSV(text);
+  // Raw system exports have preamble rows (Company Name, Center Name, ...) before
+  // the real header — find the first row that has a DOB column.
+  const hi = rows.findIndex(r => r.some(c => c.trim().toLowerCase() === 'dob'));
+  if (hi < 0) return [];
+  const header = rows[hi].map(h => h.trim().toLowerCase());
+  const col = name => header.findIndex(h => h.includes(name));
+  const iFirst = col('first name'), iLast = col('last name'),
+        iName = iFirst >= 0 ? -1 : col('name'),
+        iDob = col('dob'), iStart = col('start'),
+        iWd = col('withdrawal date'), iWr = col('reason'), iStatus = col('status'), iProg = col('program');
+  const cell = (r, i) => i >= 0 ? (r[i] || '').trim() : '';
+  return rows.slice(hi + 1).map(r => ({
+    name: iFirst >= 0 ? (cell(r, iFirst) + ' ' + cell(r, iLast)).trim() : cell(r, iName),
+    program: cell(r, iProg),
+    dob: parseDate(cell(r, iDob)), start: parseDate(cell(r, iStart)),
+    withdrawal: parseDate(cell(r, iWd)),
+    reason: cell(r, iWr),
+    status: cell(r, iStatus),
+  })).filter(c => c.name && c.dob);
+}
+
+function monthEnd(y, m) { return new Date(y, m + 1, 0); }
+
+function ageMonths(dob, date) {
+  let months = (date.getFullYear() - dob.getFullYear()) * 12 + (date.getMonth() - dob.getMonth());
+  if (date.getDate() < dob.getDate()) months--;
+  return Math.max(0, months);
+}
+
+function groupFor(months) {
+  if (months <= 18) return 'infant';
+  if (months <= 35) return 'toddler';
+  return 'senior';
+}
+
+function sameMonth(d, y, m) { return d && d.getFullYear() === y && d.getMonth() === m; }
+
+// Snapshot of the campus for a viewed month (y, m 0-based)
+function snapshot(children, y, m) {
+  const end = monthEnd(y, m);
+  const prevEnd = monthEnd(m === 0 ? y - 1 : y, m === 0 ? 11 : m - 1);
+  const present = [], future = [];
+  for (const c of children) {
+    if (!c.start) continue;
+    const withdrawnBefore = c.withdrawal && (c.withdrawal.getFullYear() * 12 + c.withdrawal.getMonth()) < (y * 12 + m);
+    if (withdrawnBefore) continue;
+    const age = ageMonths(c.dob, end);
+    const group = groupFor(age);
+    if (c.start > end) {
+      future.push({ ...c, ageAtStart: ageMonths(c.dob, c.start), groupAtStart: groupFor(ageMonths(c.dob, c.start)) });
+      continue;
+    }
+    const startedBefore = c.start <= prevEnd;
+    const prevGroup = startedBefore ? groupFor(ageMonths(c.dob, prevEnd)) : null;
+    present.push({
+      ...c, age, group,
+      starting: sameMonth(c.start, y, m),
+      agedUp: startedBefore && prevGroup !== group,
+      withdrawing: sameMonth(c.withdrawal, y, m),
+    });
+  }
+  // fill-first room assignment: oldest first within each group
+  const rooms = [];
+  for (const g of GROUP_ORDER) {
+    const kids = present.filter(k => k.group === g).sort((a, b) => b.age - a.age || a.name.localeCompare(b.name));
+    const defs = GROUPS[g].rooms;
+    let idx = 0;
+    defs.forEach((def, di) => {
+      const isLast = di === defs.length - 1;
+      const take = isLast ? kids.length - idx : Math.min(def.cap, kids.length - idx);
+      const assigned = kids.slice(idx, idx + Math.max(0, take));
+      idx += assigned.length;
+      // over-capacity = kids beyond this room's cap (only possible in last room)
+      assigned.forEach((k, ki) => { k.overCapacity = ki >= def.cap; });
+      rooms.push({
+        group: g, name: def.name, cap: def.cap, kids: assigned,
+        over: assigned.length > def.cap,
+        staff: Math.ceil(assigned.length / GROUPS[g].ratio),
+      });
+    });
+  }
+  future.sort((a, b) => a.start - b.start);
+  return { present, future, rooms };
+}
+// === LOGIC END ===
+
+// ---------- UI ----------
+const $ = id => document.getElementById(id);
+let children = [], viewY, viewM;
+let overrides = {}; // kid key -> room name (custom what-if view)
+const kidKey = k => k.name + '|' + (k.dob ? k.dob.getTime() : '');
+
+// Re-seat overridden kids, then recompute staff/over flags per room.
+// Ratio follows the strictest (youngest) group present in the room.
+function applyOverrides(snap) {
+  for (const room of snap.rooms) {
+    const stay = [], move = [];
+    for (const k of room.kids) {
+      const target = overrides[kidKey(k)];
+      if (target === room.name && !k.moved) delete overrides[kidKey(k)]; // dragged back home
+      (target && target !== room.name ? move : stay).push(k);
+    }
+    room.kids = stay;
+    for (const k of move) {
+      const dest = snap.rooms.find(r => r.name === overrides[kidKey(k)]);
+      if (dest) { k.moved = true; dest.kids.push(k); } else room.kids.push(k);
+    }
+  }
+  const active = Object.keys(overrides).length > 0;
+  for (const room of snap.rooms) {
+    const ratio = Math.min(GROUPS[room.group].ratio, ...room.kids.map(k => GROUPS[k.group].ratio));
+    room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
+    room.over = room.kids.length > room.cap;
+    room.staff = Math.ceil(room.kids.length / ratio);
+  }
+  $('resetView').hidden = !active;
+  return snap;
+}
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const fmtDate = d => d ? `${MONTHS[d.getMonth()].slice(0,3)} ${d.getDate()}, ${d.getFullYear()}` : '';
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function setData(text) {
+  children = loadChildren(text);
+  if (!children.length) { alert('No valid rows found — check the CSV columns.'); return; }
+  try { localStorage.setItem('victoria-csv', text); } catch (e) {}
+  const now = new Date();
+  viewY = now.getFullYear(); viewM = now.getMonth();
+  buildMonthOptions();
+  $('dropzone').hidden = true; $('app').hidden = false; $('monthNav').hidden = false; $('exportX').hidden = false;
+  render();
+}
+
+function buildMonthOptions() {
+  const now = new Date();
+  let maxKey = now.getFullYear() * 12 + now.getMonth();
+  for (const c of children) if (c.start) maxKey = Math.max(maxKey, c.start.getFullYear() * 12 + c.start.getMonth());
+  maxKey += 2;
+  const sel = $('monthSel'); sel.innerHTML = '';
+  for (let k = now.getFullYear() * 12 + now.getMonth(); k <= maxKey; k++) {
+    const y = Math.floor(k / 12), m = k % 12;
+    const o = document.createElement('option');
+    o.value = `${y}-${m}`; o.textContent = `${MONTHS[m]} ${y}`;
+    sel.appendChild(o);
+  }
+  sel.value = `${viewY}-${viewM}`;
+}
+
+function shiftMonth(d) {
+  const sel = $('monthSel'), opts = [...sel.options], i = opts.findIndex(o => o.value === sel.value) + d;
+  if (i >= 0 && i < opts.length) { sel.value = opts[i].value; onMonthChange(); }
+}
+function onMonthChange() { const [y, m] = $('monthSel').value.split('-').map(Number); viewY = y; viewM = m; render(); }
+
+function kidBadges(k) {
+  let b = '';
+  if (k.starting) b += `<span class="badge b-new">🟢 just started · ${fmtDate(k.start)}</span>`;
+  if (k.agedUp) b += `<span class="badge b-up">↑ aged up</span>`;
+  if (k.age >= 60 && k.age <= 72) b += `<span class="badge b-grad">possible graduation</span>`;
+  if (k.overCapacity) b += `<span class="badge b-over">over capacity</span>`;
+  if (k.withdrawing) b += `<span class="badge b-out">↳ leaves ${fmtDate(k.withdrawal)}</span>`;
+  return b;
+}
+
+function render() {
+  const snap = applyOverrides(snapshot(children, viewY, viewM));
+  const monthName = `${MONTHS[viewM]} ${viewY}`;
+  const byGroup = g => snap.present.filter(k => k.group === g).length;
+  const totalStaff = snap.rooms.reduce((s, r) => s + r.staff, 0);
+
+  $('summary').innerHTML = `
+    <div class="stat g-infant"><div class="num">${byGroup('infant')}</div><div class="lbl">Infants (1:4)</div></div>
+    <div class="stat g-toddler"><div class="num">${byGroup('toddler')}</div><div class="lbl">Toddlers (1:4)</div></div>
+    <div class="stat g-senior"><div class="num">${byGroup('senior')}</div><div class="lbl">Seniors (1:8)</div></div>
+    <div class="stat"><div class="num">${snap.present.length}</div><div class="lbl">Kids in ${esc(monthName)}</div></div>
+    <div class="stat g-staff"><div class="num">${totalStaff}</div><div class="lbl">Staff required</div></div>`;
+
+  $('rooms').innerHTML = snap.rooms.map(r => {
+    const dots = Array.from({ length: Math.max(r.cap, r.kids.length) }, (_, i) => {
+      const filled = i < r.kids.length;
+      const over = i >= r.cap;
+      return `<div class="dot ${filled ? 'filled c-' + r.group : ''} ${filled && over ? 'overcap' : ''}"></div>`;
+    }).join('');
+    const kids = r.kids.map(k => `
+      <div class="kid ${k.withdrawing ? 'withdrawing' : ''}" draggable="true" data-kid="${esc(kidKey(k))}">
+        <span class="name">${esc(k.name)}</span>${k.moved ? '<span class="badge b-moved">moved</span>' : ''}${kidBadges(k)}
+        <span class="age">${k.age} mo</span>
+      </div>`).join('');
+    return `
+      <div class="room ${r.over ? 'over' : ''}" data-room="${esc(r.name)}">
+        <div class="room-head"><h3>${r.name}</h3><span class="range">${GROUPS[r.group].range}</span>
+          <span class="count">${r.kids.length}/${r.cap}</span></div>
+        <div class="room-staff">Staff needed: <b>${r.staff}</b>
+          ${r.over ? `<span class="overflag"> · ⚠ ${r.kids.length - r.cap} over capacity</span>` : ''}</div>
+        <div class="dots">${dots}</div>
+        <div class="kids">${kids || '<div class="empty" style="color:var(--ink-soft)">Empty</div>'}</div>
+      </div>`;
+  }).join('');
+
+  $('panelTitle').textContent = `Happening in ${monthName}`;
+  const ups = snap.present.filter(k => k.agedUp);
+  const outs = snap.present.filter(k => k.withdrawing);
+  const gtag = g => `<span class="gtag gt-${g}">${GROUPS[g].label}</span>`;
+  const panel = (title, items, rowFn) => `
+    <div class="panel"><h3>${title} <span class="n">${items.length}</span></h3>
+      ${items.length ? items.map(rowFn).join('') : '<div class="empty">Nothing this month</div>'}</div>`;
+
+  $('panels').innerHTML =
+    panel('↑ Aging up', ups, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.group)}
+      <span class="meta">now ${k.age} mo</span></div>`) +
+    panel('Withdrawing', outs, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.group)}
+      <span class="meta">${fmtDate(k.withdrawal)} — ${esc(k.reason || 'no reason given')}</span></div>`) +
+    panel('Starting soon (reserved)', snap.future, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.groupAtStart)}
+      <span class="meta">starts ${fmtDate(k.start)} at ${k.ageAtStart} mo</span></div>`);
+}
+
+// wiring
+$('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) f.text().then(setData);
+});
+const dz = $('dropzone');
+dz.addEventListener('click', () => $('fileInput').click());
+dz.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') $('fileInput').click(); });
+['dragover', 'dragenter'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+dz.addEventListener('drop', e => {
+  const f = e.dataTransfer.files[0];
+  if (f) f.text().then(setData);
+});
+// drag kids between rooms (custom what-if view)
+const roomsEl = $('rooms');
+roomsEl.addEventListener('dragstart', e => {
+  const kid = e.target.closest('.kid');
+  if (!kid) return;
+  e.dataTransfer.setData('text/plain', kid.dataset.kid);
+  e.dataTransfer.effectAllowed = 'move';
+  kid.classList.add('dragging');
+});
+roomsEl.addEventListener('dragend', e => {
+  const kid = e.target.closest('.kid');
+  if (kid) kid.classList.remove('dragging');
+});
+roomsEl.addEventListener('dragover', e => {
+  const room = e.target.closest('.room');
+  if (!room) return;
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  roomsEl.querySelectorAll('.room.droptarget').forEach(r => r.classList.remove('droptarget'));
+  room.classList.add('droptarget');
+});
+roomsEl.addEventListener('dragleave', e => {
+  const room = e.target.closest('.room');
+  if (room && !room.contains(e.relatedTarget)) room.classList.remove('droptarget');
+});
+roomsEl.addEventListener('drop', e => {
+  const room = e.target.closest('.room');
+  if (!room) return;
+  e.preventDefault();
+  const key = e.dataTransfer.getData('text/plain');
+  if (key) { overrides[key] = room.dataset.room; render(); }
+});
+$('resetView').addEventListener('click', () => { overrides = {}; render(); });
+
+// ---------- Excel export (no libraries: minimal .xlsx = zip of XML parts, stored/uncompressed) ----------
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
+  return t;
+})();
+function crc32(bytes) { let c = ~0; for (const b of bytes) c = CRC_TABLE[(c ^ b) & 0xFF] ^ (c >>> 8); return ~c >>> 0; }
+
+// ponytail: stored (no-compression) zip — files are tiny; add deflate only if size ever matters
+function makeZip(files) { // files: [name, xmlString][]
+  const enc = new TextEncoder();
+  const parts = [], central = [];
+  let offset = 0;
+  for (const [name, content] of files) {
+    const nb = enc.encode(name), db = enc.encode(content), crc = crc32(db);
+    const local = new Uint8Array(30 + nb.length), lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4, 20, true);
+    lv.setUint32(14, crc, true); lv.setUint32(18, db.length, true); lv.setUint32(22, db.length, true);
+    lv.setUint16(26, nb.length, true);
+    local.set(nb, 30);
+    const cd = new Uint8Array(46 + nb.length), cv = new DataView(cd.buffer);
+    cv.setUint32(0, 0x02014b50, true); cv.setUint16(4, 20, true); cv.setUint16(6, 20, true);
+    cv.setUint32(16, crc, true); cv.setUint32(20, db.length, true); cv.setUint32(24, db.length, true);
+    cv.setUint16(28, nb.length, true); cv.setUint32(42, offset, true);
+    cd.set(nb, 46);
+    parts.push(local, db); central.push(cd);
+    offset += local.length + db.length;
+  }
+  const cdSize = central.reduce((s, c) => s + c.length, 0);
+  const end = new Uint8Array(22), ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true); ev.setUint16(8, files.length, true); ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true); ev.setUint32(16, offset, true);
+  return new Blob([...parts, ...central, end], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+function sheetXML(rows) { // numbers -> number cells, everything else -> inline string
+  const cell = v => typeof v === 'number'
+    ? `<c><v>${v}</v></c>`
+    : `<c t="inlineStr"><is><t xml:space="preserve">${esc(String(v ?? ''))}</t></is></c>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+    `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData>` +
+    rows.map(r => `<row>${r.map(cell).join('')}</row>`).join('') +
+    `</sheetData></worksheet>`;
+}
+
+function exportExcel() {
+  const snap = applyOverrides(snapshot(children, viewY, viewM));
+  const monthName = `${MONTHS[viewM]} ${viewY}`;
+  const sheets = snap.rooms.filter(r => r.kids.length).map(r => ({
+    name: r.name,
+    rows: [
+      [`${r.name} — ${monthName}`],
+      ['Group', GROUPS[r.group].label + ' (' + GROUPS[r.group].range + ')'],
+      ['Staff required', r.staff],
+      ['Assigned Teacher', ''],
+      [],
+      ['Child Name', 'Group', 'Age (months)'],
+      ...r.kids.map(k => [k.name, GROUPS[k.group].label, k.age]),
+    ],
+  }));
+  if (!sheets.length) { alert('No kids in the viewed month — nothing to export.'); return; }
+
+  const files = [
+    ['[Content_Types].xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">` +
+      `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>` +
+      `<Default Extension="xml" ContentType="application/xml"/>` +
+      `<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>` +
+      sheets.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') +
+      `</Types>`],
+    ['_rels/.rels',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>` +
+      `</Relationships>`],
+    ['xl/workbook.xml',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` +
+      sheets.map((s, i) => `<sheet name="${esc(s.name)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') +
+      `</sheets></workbook>`],
+    ['xl/_rels/workbook.xml.rels',
+      `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
+      `<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      sheets.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') +
+      `</Relationships>`],
+    ...sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, sheetXML(s.rows)]),
+  ];
+
+  const url = URL.createObjectURL(makeZip(files));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Victoria Staffing ${monthName}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+$('exportX').addEventListener('click', exportExcel);
+
+$('monthSel').addEventListener('change', onMonthChange);
+$('prevM').addEventListener('click', () => shiftMonth(-1));
+$('nextM').addEventListener('click', () => shiftMonth(1));
+
+// restore last upload
+try {
+  const saved = localStorage.getItem('victoria-csv');
+  if (saved) setData(saved);
+} catch (e) {}
+</script>
+</body>
+</html>
