@@ -208,9 +208,16 @@
 const GROUPS = {
   infant:  { label: 'Infant',  range: '0–18 mo',  ratio: 4, rooms: [{ name: 'Infant Room', cap: 12 }] },
   toddler: { label: 'Toddler', range: '19–35 mo', ratio: 4, rooms: [{ name: 'Toddler 1', cap: 12 }, { name: 'Toddler 2', cap: 12 }] },
-  senior:  { label: 'Senior Preschool', range: '36+ mo', ratio: 8, rooms: [{ name: 'Senior 1', cap: 24 }, { name: 'Senior 2', cap: 24 }, { name: 'Senior 3', cap: 24 }] },
+  senior:  { label: 'Senior Preschool', range: '36+ mo', ratio: 8, rooms: [{ name: 'Senior 1', cap: 25 }, { name: 'Senior 2', cap: 25 }, { name: 'Senior 3', cap: 25 }] },
 };
 const GROUP_ORDER = ['infant', 'toddler', 'senior'];
+
+// Senior rooms: a full room of exactly 25 stays at 3 staff (the 25th kid
+// doesn't trigger a 4th). At 26+ (over capacity) normal ratio applies.
+function staffFor(group, count) {
+  if (group === 'senior' && count === 25) return 3;
+  return Math.ceil(count / GROUPS[group].ratio);
+}
 
 function parseCSV(text) {
   const rows = []; let row = [], field = '', inQ = false;
@@ -317,7 +324,7 @@ function snapshot(children, y, m) {
       rooms.push({
         group: g, name: def.name, cap: def.cap, kids: assigned,
         over: assigned.length > def.cap,
-        staff: Math.ceil(assigned.length / GROUPS[g].ratio),
+        staff: staffFor(g, assigned.length),
       });
     });
   }
@@ -350,10 +357,9 @@ function applyOverrides(snap) {
   }
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
-    const ratio = GROUPS[room.group].ratio;
     room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
     room.over = room.kids.length > room.cap;
-    room.staff = Math.ceil(room.kids.length / ratio);
+    room.staff = staffFor(room.group, room.kids.length);
   }
   $('resetView').hidden = !active;
   return snap;
