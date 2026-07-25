@@ -145,6 +145,30 @@
   .b-over { background: #FBE7E7; color: var(--flag); }
   .b-grad { background: #EDE9FB; color: #6D5BC7; }
   .b-out { background: #FBE7E7; color: var(--flag); }
+  .badge-cert { font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 4px; margin-left: 4px; letter-spacing: .02em; }
+  .b-it  { background: #e8f0fe; color: #1a56b0; }
+  .b-ece { background: #e6f4ea; color: #1e7e34; }
+  .b-eca { background: #fef3e2; color: #b06000; }
+  dialog#staffDlg { border: 1px solid var(--line, #ddd); border-radius: 12px; padding: 20px; min-width: 420px; }
+  dialog#staffDlg::backdrop { background: rgba(0,0,0,.3); }
+  .staff-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line, #eee); }
+  .staff-row .meta { color: var(--ink-soft); font-size: 12px; margin-left: auto; }
+  #staffAdd { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+
+  .staff-strip { border-top: 1px dashed var(--line, #ddd); margin-top: 8px; padding-top: 8px; }
+  .strip-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 6px; }
+  .slots { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tchip { display: inline-flex; align-items: center; padding: 4px 8px; border: 1px solid var(--line, #ccc); border-radius: 8px; font-size: 12px; font-weight: 600; background: #fff; cursor: grab; }
+  .tchip.overassigned { opacity: .65; border-style: dotted; }
+  .slot-open { padding: 4px 12px; border: 1.5px dashed var(--ink-soft, #999); border-radius: 8px; font-size: 12px; color: var(--ink-soft); }
+  .strip-status { display: flex; gap: 12px; margin-top: 6px; font-size: 11px; font-weight: 600; }
+  .cstat { display: inline-flex; align-items: center; gap: 4px; }
+  .dot-s { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .cstat.ok  { color: #1e7e34; } .cstat.ok  .dot-s { background: #1e7e34; }
+  .cstat.bad { color: #c0392b; } .cstat.bad .dot-s { background: #c0392b; }
+  .cstat.warn { color: #b06000; } .cstat.warn .dot-s { background: #b06000; }
+  #bench { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+  #benchWrap summary { cursor: pointer; font-size: 13px; font-weight: 700; color: var(--ink-soft); padding: 6px 0; }
 
   /* Month panel */
   .panel-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 18px; margin-top: 28px; }
@@ -186,9 +210,23 @@
     <button id="nextM" aria-label="Next month">›</button>
   </div>
   <button class="btn-reset" id="resetView" hidden>Reset view</button>
+  <button class="btn-reset" id="staffBtn" hidden>Staff</button>
   <button class="btn-export" id="exportX" hidden>Export Excel</button>
   <label class="btn-upload">Upload CSV<input type="file" id="fileInput" accept=".csv"></label>
 </header>
+
+<dialog id="staffDlg">
+  <h3>Teachers</h3>
+  <form id="staffAdd">
+    <input id="tName" placeholder="Teacher name" required maxlength="60">
+    <label><input type="checkbox" value="IT"> IT</label>
+    <label><input type="checkbox" value="ECE"> ECE</label>
+    <label><input type="checkbox" value="ECA"> ECA</label>
+    <button type="submit">Add</button>
+  </form>
+  <div id="staffList"></div>
+  <button id="staffClose" type="button">Close</button>
+</dialog>
 
 <div class="dropzone" id="dropzone" tabindex="0">
   <h2>Drop the enrollment CSV here</h2>
@@ -197,6 +235,10 @@
 
 <main id="app" hidden>
   <div class="summary" id="summary"></div>
+  <details id="benchWrap">
+    <summary id="benchTitle">Bench</summary>
+    <div id="bench"></div>
+  </details>
   <div class="section-title">Rooms</div>
   <div class="rooms" id="rooms"></div>
   <div class="section-title" id="panelTitle">This month</div>
@@ -331,6 +373,14 @@ function snapshot(children, y, m) {
   future.sort((a, b) => a.start - b.start);
   return { present, future, rooms };
 }
+
+// Alberta cert rule: infant rooms need an IT-certified teacher; toddler and
+// senior rooms need an ECE. ECA fills a slot but never satisfies the rule.
+const REQUIRED_CERT = { infant: 'IT', toddler: 'ECE', senior: 'ECE' };
+function certStatus(group, teacherList) {
+  const need = REQUIRED_CERT[group];
+  return { met: teacherList.some(t => (t.certs || []).includes(need)), need };
+}
 // === LOGIC END ===
 
 // ---------- UI ----------
@@ -339,6 +389,14 @@ let children = [], viewY, viewM;
 let overrides = {}; // kid key -> room name (custom what-if view)
 const kidKey = k => k.name + '|' + (k.dob ? k.dob.getTime() : '');
 function saveOverrides() { try { localStorage.setItem('victoria-overrides', JSON.stringify(overrides)); } catch (e) {} }
+let teachers = [];          // { id, name, certs: [] }
+let staffAssign = {};       // teacherId -> room name; absent = bench
+function saveStaff() {
+  try {
+    localStorage.setItem('victoria-teachers', JSON.stringify(teachers));
+    localStorage.setItem('victoria-staff-assign', JSON.stringify(staffAssign));
+  } catch (e) {}
+}
 
 // Re-seat overridden kids, then recompute staff/over flags per room.
 // Ratio is fixed per room, regardless of which kids are dragged in.
@@ -387,7 +445,7 @@ function setData(text) {
   const now = new Date();
   viewY = now.getFullYear(); viewM = now.getMonth();
   buildMonthOptions();
-  $('dropzone').hidden = true; $('app').hidden = false; $('monthNav').hidden = false; $('exportX').hidden = false;
+  $('dropzone').hidden = true; $('app').hidden = false; $('monthNav').hidden = false; $('exportX').hidden = false; $('staffBtn').hidden = false;
   render();
 }
 
@@ -446,6 +504,23 @@ function render() {
         <span class="name">${esc(k.name)}</span>${k.moved ? '<span class="badge b-moved">moved</span>' : ''}${kidBadges(k)}
         <span class="age">${k.age} mo</span>
       </div>`).join('');
+    const roomTeachers = teachers.filter(t => staffAssign[t.id] === r.name);
+    const cert = certStatus(r.group, roomTeachers);
+    const openSlots = Math.max(0, r.staff - roomTeachers.length);
+    const tchip = t => `<div class="tchip" draggable="true" data-tid="${esc(t.id)}">${esc(t.name)}${certBadges(t)}</div>`;
+    const strip = r.kids.length === 0 ? '' : `
+      <div class="staff-strip">
+        <div class="strip-head">Staff <span class="meta">needs ${r.staff}</span></div>
+        <div class="slots">
+          ${roomTeachers.map((t, i) => i < r.staff ? tchip(t) : tchip(t).replace('class="tchip"', 'class="tchip overassigned"')).join('')}
+          ${Array.from({ length: openSlots }, () => '<div class="slot-open">open</div>').join('')}
+        </div>
+        <div class="strip-status">
+          <span class="cstat ${cert.met ? 'ok' : 'bad'}"><span class="dot-s"></span>${cert.met ? `${cert.need} covered` : `needs ${cert.need} cert`}</span>
+          ${openSlots ? `<span class="cstat warn"><span class="dot-s"></span>needs ${openSlots} more</span>` : ''}
+          ${roomTeachers.length > r.staff ? `<span class="cstat warn"><span class="dot-s"></span>${roomTeachers.length - r.staff} over</span>` : ''}
+        </div>
+      </div>`;
     return `
       <div class="room ${r.over ? 'over' : ''}" data-room="${esc(r.name)}">
         <div class="room-head"><h3>${r.name}</h3><span class="range">${GROUPS[r.group].range}</span>
@@ -454,6 +529,7 @@ function render() {
           ${r.over ? `<span class="overflag"> · ⚠ ${r.kids.length - r.cap} over capacity</span>` : ''}</div>
         <div class="dots">${dots}</div>
         <div class="kids">${kids || '<div class="empty" style="color:var(--ink-soft)">Empty</div>'}</div>
+        ${strip}
       </div>`;
   }).join('');
 
@@ -472,6 +548,12 @@ function render() {
       <span class="meta">${fmtDate(k.withdrawal)} — ${esc(k.reason || 'no reason given')}</span></div>`) +
     panel('Starting soon (reserved)', snap.future, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.groupAtStart)}
       <span class="meta">starts ${fmtDate(k.start)}</span></div>`);
+
+  const benched = teachers.filter(t => !staffAssign[t.id] || !snap.rooms.some(r => r.name === staffAssign[t.id]));
+  $('benchTitle').textContent = `Bench (${benched.length} unassigned)`;
+  $('bench').innerHTML = benched.map(t => `<div class="tchip" draggable="true" data-tid="${esc(t.id)}">${esc(t.name)}${certBadges(t)}</div>`).join('')
+    || '<div class="empty">Everyone is assigned</div>';
+  $('benchWrap').hidden = teachers.length === 0;
 }
 
 // wiring
@@ -488,9 +570,16 @@ dz.addEventListener('drop', e => {
   const f = e.dataTransfer.files[0];
   if (f) f.text().then(setData);
 });
-// drag kids between rooms (custom what-if view)
+// drag kids between rooms (custom what-if view); drag teachers between rooms/bench
 const roomsEl = $('rooms');
+function chipDragStart(e) {
+  const chip = e.target.closest('.tchip');
+  if (chip) { e.dataTransfer.setData('text/plain', 'T:' + chip.dataset.tid); e.dataTransfer.effectAllowed = 'move'; return true; }
+  return false;
+}
+$('bench').addEventListener('dragstart', chipDragStart);
 roomsEl.addEventListener('dragstart', e => {
+  if (chipDragStart(e)) return;
   const kid = e.target.closest('.kid');
   if (!kid) return;
   e.dataTransfer.setData('text/plain', kid.dataset.kid);
@@ -518,9 +607,58 @@ roomsEl.addEventListener('drop', e => {
   if (!room) return;
   e.preventDefault();
   const key = e.dataTransfer.getData('text/plain');
+  if (key.startsWith('T:')) {
+    staffAssign[key.slice(2)] = room.dataset.room;
+    saveStaff(); render();
+    return;
+  }
   if (key) { overrides[key] = room.dataset.room; saveOverrides(); render(); }
 });
+const benchWrap = $('benchWrap');
+benchWrap.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+benchWrap.addEventListener('drop', e => {
+  const key = e.dataTransfer.getData('text/plain');
+  if (!key.startsWith('T:')) return;
+  e.preventDefault();
+  delete staffAssign[key.slice(2)];
+  saveStaff(); render();
+});
 $('resetView').addEventListener('click', () => { overrides = {}; saveOverrides(); render(); });
+
+const CERTS = ['IT', 'ECE', 'ECA'];
+const certBadges = t => (t.certs || []).map(c => `<span class="badge-cert b-${c.toLowerCase()}">${c}</span>`).join('');
+function renderStaffList() {
+  $('staffList').innerHTML = teachers.map(t => `
+    <div class="staff-row" data-tid="${esc(t.id)}">
+      <span class="name">${esc(t.name)}</span>${certBadges(t)}
+      <span class="meta">${staffAssign[t.id] ? esc(staffAssign[t.id]) : 'bench'}</span>
+      ${CERTS.map(c => `<label><input type="checkbox" data-cert="${c}" ${(t.certs||[]).includes(c) ? 'checked' : ''}>${c}</label>`).join('')}
+      <button type="button" data-del>Remove</button>
+    </div>`).join('') || '<div class="empty">No teachers yet</div>';
+}
+$('staffBtn').addEventListener('click', () => { renderStaffList(); $('staffDlg').showModal(); });
+$('staffClose').addEventListener('click', () => $('staffDlg').close());
+$('staffAdd').addEventListener('submit', e => {
+  e.preventDefault();
+  const name = $('tName').value.trim();
+  if (!name) return;
+  const certs = [...$('staffAdd').querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
+  teachers.push({ id: crypto.randomUUID(), name, certs });
+  e.target.reset();
+  saveStaff(); renderStaffList(); render();
+});
+$('staffList').addEventListener('click', e => {
+  const row = e.target.closest('.staff-row'); if (!row) return;
+  const t = teachers.find(x => x.id === row.dataset.tid); if (!t) return;
+  if (e.target.hasAttribute('data-del')) {
+    teachers = teachers.filter(x => x.id !== t.id);
+    delete staffAssign[t.id];
+  } else if (e.target.dataset.cert) {
+    const c = e.target.dataset.cert;
+    t.certs = e.target.checked ? [...new Set([...(t.certs||[]), c])] : (t.certs||[]).filter(x => x !== c);
+  } else return;
+  saveStaff(); renderStaffList(); render();
+});
 
 // ---------- Excel export (no libraries: minimal .xlsx = zip of XML parts, stored/uncompressed) ----------
 const CRC_TABLE = (() => {
@@ -625,6 +763,8 @@ $('prevM').addEventListener('click', () => shiftMonth(-1));
 $('nextM').addEventListener('click', () => shiftMonth(1));
 
 // restore last upload + saved custom view
+try { teachers = JSON.parse(localStorage.getItem('victoria-teachers')) || []; } catch (e) { teachers = []; }
+try { staffAssign = JSON.parse(localStorage.getItem('victoria-staff-assign')) || {}; } catch (e) { staffAssign = {}; }
 try {
   overrides = JSON.parse(localStorage.getItem('victoria-overrides')) || {};
   const saved = localStorage.getItem('victoria-csv');
