@@ -338,23 +338,23 @@ const $ = id => document.getElementById(id);
 let children = [], viewY, viewM;
 let overrides = {}; // kid key -> room name (custom what-if view)
 const kidKey = k => k.name + '|' + (k.dob ? k.dob.getTime() : '');
+function saveOverrides() { try { localStorage.setItem('victoria-overrides', JSON.stringify(overrides)); } catch (e) {} }
 
 // Re-seat overridden kids, then recompute staff/over flags per room.
 // Ratio is fixed per room, regardless of which kids are dragged in.
+// An override is a persistent pin: it survives month changes and reloads,
+// but only applies while the kid is still in that room's group — once the
+// kid ages up, natural assignment wins and the pin is ignored.
 function applyOverrides(snap) {
+  const moves = [];
   for (const room of snap.rooms) {
-    const stay = [], move = [];
-    for (const k of room.kids) {
-      const target = overrides[kidKey(k)];
-      if (target === room.name && !k.moved) delete overrides[kidKey(k)]; // dragged back home
-      (target && target !== room.name ? move : stay).push(k);
-    }
-    room.kids = stay;
-    for (const k of move) {
+    room.kids = room.kids.filter(k => {
       const dest = snap.rooms.find(r => r.name === overrides[kidKey(k)]);
-      if (dest) { k.moved = true; dest.kids.push(k); } else room.kids.push(k);
-    }
+      if (dest && dest !== room && dest.group === k.group) { moves.push([k, dest]); return false; }
+      return true;
+    });
   }
+  for (const [k, dest] of moves) { k.moved = true; dest.kids.push(k); }
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
     room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
@@ -506,9 +506,9 @@ roomsEl.addEventListener('drop', e => {
   if (!room) return;
   e.preventDefault();
   const key = e.dataTransfer.getData('text/plain');
-  if (key) { overrides[key] = room.dataset.room; render(); }
+  if (key) { overrides[key] = room.dataset.room; saveOverrides(); render(); }
 });
-$('resetView').addEventListener('click', () => { overrides = {}; render(); });
+$('resetView').addEventListener('click', () => { overrides = {}; saveOverrides(); render(); });
 
 // ---------- Excel export (no libraries: minimal .xlsx = zip of XML parts, stored/uncompressed) ----------
 const CRC_TABLE = (() => {
@@ -612,8 +612,9 @@ $('monthSel').addEventListener('change', onMonthChange);
 $('prevM').addEventListener('click', () => shiftMonth(-1));
 $('nextM').addEventListener('click', () => shiftMonth(1));
 
-// restore last upload
+// restore last upload + saved custom view
 try {
+  overrides = JSON.parse(localStorage.getItem('victoria-overrides')) || {};
   const saved = localStorage.getItem('victoria-csv');
   if (saved) setData(saved);
 } catch (e) {}
