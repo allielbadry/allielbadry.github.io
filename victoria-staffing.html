@@ -154,13 +154,6 @@
   .sv-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
   .sv-head h2 { font-size: 26px; letter-spacing: -0.02em; }
   .sv-head .count { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
-  .sv-head .spacer { flex: 1; }
-  .btn-back {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line);
-    background: var(--card); color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer;
-  }
-  .btn-back:hover { background: var(--paper); }
   #svAdd { display: flex; gap: 10px; margin-bottom: 22px; }
   #svAdd input {
     flex: 0 1 300px; padding: 9px 12px; border: 1px solid var(--line);
@@ -265,8 +258,6 @@
   <div class="sv-head">
     <h2>Staff</h2>
     <span class="count" id="svCount"></span>
-    <div class="spacer"></div>
-    <button class="btn-back" id="svBack" type="button">Back to rooms</button>
   </div>
   <form id="svAdd">
     <input id="svName" placeholder="Teacher name" required maxlength="60" autocomplete="off">
@@ -750,12 +741,12 @@ function syncView() {
   $('dropzone').hidden = staff || hasData;
   $('monthNav').hidden = staff || !hasData;
   $('exportX').hidden = staff || !hasData;
-  $('staffBtn').hidden = staff || !hasData;
+  $('staffBtn').hidden = !staff && !hasData;
+  $('staffBtn').textContent = staff ? 'Back to rooms' : 'Staff';
   if (staff) renderStaffView();
 }
 window.addEventListener('hashchange', syncView);
-$('staffBtn').addEventListener('click', () => { location.hash = 'staff'; });
-$('svBack').addEventListener('click', () => { location.hash = ''; });
+$('staffBtn').addEventListener('click', () => { location.hash = location.hash === '#staff' ? '' : 'staff'; });
 
 $('svAdd').addEventListener('submit', e => {
   e.preventDefault();
