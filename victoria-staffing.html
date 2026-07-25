@@ -149,11 +149,57 @@
   .b-it  { background: #e8f0fe; color: #1a56b0; }
   .b-ece { background: #e6f4ea; color: #1e7e34; }
   .b-eca { background: #fef3e2; color: #b06000; }
-  dialog#staffDlg { border: 1px solid var(--line, #ddd); border-radius: 12px; padding: 20px; min-width: 420px; }
-  dialog#staffDlg::backdrop { background: rgba(0,0,0,.3); }
-  .staff-row { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--line, #eee); }
-  .staff-row .meta { color: var(--ink-soft); font-size: 12px; margin-left: auto; }
-  #staffAdd { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; }
+  /* Staff view */
+  #staffView { padding: 24px 28px 60px; max-width: 1240px; margin: 0 auto; }
+  .sv-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 18px; }
+  .sv-head h2 { font-size: 26px; letter-spacing: -0.02em; }
+  .sv-head .count { color: var(--ink-soft); font-size: 13px; font-weight: 600; }
+  .sv-head .spacer { flex: 1; }
+  .btn-back {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px; border-radius: 8px; border: 1px solid var(--line);
+    background: var(--card); color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .btn-back:hover { background: var(--paper); }
+  #svAdd { display: flex; gap: 10px; margin-bottom: 22px; }
+  #svAdd input {
+    flex: 0 1 300px; padding: 9px 12px; border: 1px solid var(--line);
+    border-radius: 8px; font: inherit; background: var(--card); color: var(--ink);
+  }
+  #svAdd button {
+    padding: 9px 18px; border-radius: 8px; border: 1px solid var(--ink);
+    background: var(--ink); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer;
+  }
+  .sv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px; }
+  .tcard {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  }
+  .tc-name { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 17px; cursor: text; border-radius: 6px; overflow-wrap: anywhere; }
+  .tc-name:hover { background: var(--paper); }
+  .tc-pills { display: flex; gap: 6px; }
+  .pill {
+    padding: 4px 12px; border-radius: 20px; font-size: 11.5px; font-weight: 700;
+    border: 1.5px solid var(--line); background: transparent; color: var(--ink-soft);
+    cursor: pointer; letter-spacing: .02em;
+  }
+  .pill.on.p-it  { background: #e8f0fe; color: #1a56b0; border-color: #1a56b0; }
+  .pill.on.p-ece { background: #e6f4ea; color: #1e7e34; border-color: #1e7e34; }
+  .pill.on.p-eca { background: #fef3e2; color: #b06000; border-color: #b06000; }
+  .tc-wage { font-size: 14px; font-weight: 600; cursor: text; border-radius: 6px; }
+  .tc-wage:hover { background: var(--paper); }
+  .tc-wage .unset { color: var(--ink-soft); font-weight: 500; }
+  .tc-edit { font: inherit; width: 100%; padding: 2px 6px; border: 1px solid var(--senior); border-radius: 6px; }
+  .tc-status { font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 6px; }
+  .tc-status .dot-s { width: 7px; height: 7px; border-radius: 50%; display: inline-block; background: var(--ink-soft); }
+  .tc-status.assigned { color: #1e7e34; }
+  .tc-status.assigned .dot-s { background: #1e7e34; }
+  .tc-remove {
+    align-self: flex-start; margin-top: 2px; padding: 5px 12px; border-radius: 8px;
+    border: 1px solid var(--line); background: transparent; color: var(--flag);
+    font-weight: 600; font-size: 12px; cursor: pointer;
+  }
+  .tc-remove:hover { background: #FBE7E7; border-color: var(--flag); }
 
   .staff-strip { border-top: 1px dashed var(--line, #ddd); margin-top: 8px; padding-top: 8px; }
   .strip-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-soft); margin-bottom: 6px; }
@@ -215,18 +261,19 @@
   <label class="btn-upload">Upload CSV<input type="file" id="fileInput" accept=".csv"></label>
 </header>
 
-<dialog id="staffDlg">
-  <h3>Teachers</h3>
-  <form id="staffAdd">
-    <input id="tName" placeholder="Teacher name" required maxlength="60">
-    <label><input type="checkbox" value="IT"> IT</label>
-    <label><input type="checkbox" value="ECE"> ECE</label>
-    <label><input type="checkbox" value="ECA"> ECA</label>
-    <button type="submit">Add</button>
+<section id="staffView" hidden>
+  <div class="sv-head">
+    <h2>Staff</h2>
+    <span class="count" id="svCount"></span>
+    <div class="spacer"></div>
+    <button class="btn-back" id="svBack" type="button">Back to rooms</button>
+  </div>
+  <form id="svAdd">
+    <input id="svName" placeholder="Teacher name" required maxlength="60" autocomplete="off">
+    <button type="submit">Add teacher</button>
   </form>
-  <div id="staffList"></div>
-  <button id="staffClose" type="button">Close</button>
-</dialog>
+  <div class="sv-grid" id="svGrid"></div>
+</section>
 
 <div class="dropzone" id="dropzone" tabindex="0">
   <h2>Drop the enrollment CSV here</h2>
@@ -460,7 +507,7 @@ function setData(text) {
   const now = new Date();
   viewY = now.getFullYear(); viewM = now.getMonth();
   buildMonthOptions();
-  $('dropzone').hidden = true; $('app').hidden = false; $('monthNav').hidden = false; $('exportX').hidden = false; $('staffBtn').hidden = false;
+  syncView();
   render();
 }
 
@@ -660,42 +707,96 @@ $('resetView').addEventListener('click', () => { overrides = {}; saveOverrides()
 
 const CERTS = ['IT', 'ECE', 'ECA'];
 const certBadges = t => (t.certs || []).map(c => `<span class="badge-cert b-${c.toLowerCase()}">${c}</span>`).join('');
-function renderStaffList() {
-  $('staffList').innerHTML = teachers.map(t => `
-    <div class="staff-row" data-tid="${esc(t.id)}">
-      <span class="name">${esc(t.name)}</span>${certBadges(t)}
-      <span class="meta">${staffAssign[t.id] ? esc(staffAssign[t.id]) : 'bench'}</span>
-      ${CERTS.map(c => `<label><input type="checkbox" data-cert="${c}" ${(t.certs||[]).includes(c) ? 'checked' : ''}>${c}</label>`).join('')}
-      <button type="button" data-rename>Rename</button>
-      <button type="button" data-del>Remove</button>
-    </div>`).join('') || '<div class="empty">No teachers yet</div>';
+
+// ---------- Staff view (#staff) ----------
+const fmtWage = t => t.wage != null
+  ? `$${t.wage.toFixed(2)}/hr`
+  : '<span class="unset">no wage set</span>';
+
+// Swap an element's content for an input; save on blur/Enter, cancel on Escape.
+function editInPlace(el, value, attrs, onSave) {
+  const input = document.createElement('input');
+  Object.assign(input, { className: 'tc-edit', value }, attrs);
+  el.replaceChildren(input);
+  input.focus(); input.select();
+  let done = false;
+  const finish = commit => { if (done) return; done = true; onSave(commit ? input.value : null); };
+  input.addEventListener('blur', () => finish(true));
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { finish(false); renderStaffView(); }
+  });
 }
-$('staffBtn').addEventListener('click', () => { renderStaffList(); $('staffDlg').showModal(); });
-$('staffClose').addEventListener('click', () => $('staffDlg').close());
-$('staffAdd').addEventListener('submit', e => {
+
+function renderStaffView() {
+  $('svCount').textContent = teachers.length === 1 ? '1 teacher' : `${teachers.length} teachers`;
+  $('svGrid').innerHTML = teachers.map(t => `
+    <div class="tcard" data-tid="${esc(t.id)}">
+      <div class="tc-name" data-edit-name title="Click to rename">${esc(t.name)}</div>
+      <div class="tc-pills">${CERTS.map(c =>
+        `<button type="button" class="pill p-${c.toLowerCase()}${(t.certs||[]).includes(c) ? ' on' : ''}" data-cert="${c}">${c}</button>`).join('')}</div>
+      <div class="tc-wage" data-edit-wage title="Click to set hourly wage">${fmtWage(t)}</div>
+      <div class="tc-status${staffAssign[t.id] ? ' assigned' : ''}"><span class="dot-s"></span>${staffAssign[t.id] ? 'Assigned: ' + esc(staffAssign[t.id]) : 'On bench'}</div>
+      <button type="button" class="tc-remove" data-del>Remove</button>
+    </div>`).join('') || '<div class="empty" style="color:var(--ink-soft)">No teachers yet — add one above.</div>';
+}
+
+// hash-driven view toggle: #staff shows the staff view, anything else the dashboard
+function syncView() {
+  const staff = location.hash === '#staff';
+  $('staffView').hidden = !staff;
+  const hasData = children.length > 0;
+  $('app').hidden = staff || !hasData;
+  $('dropzone').hidden = staff || hasData;
+  $('monthNav').hidden = staff || !hasData;
+  $('exportX').hidden = staff || !hasData;
+  $('staffBtn').hidden = staff || !hasData;
+  if (staff) renderStaffView();
+}
+window.addEventListener('hashchange', syncView);
+$('staffBtn').addEventListener('click', () => { location.hash = 'staff'; });
+$('svBack').addEventListener('click', () => { location.hash = ''; });
+
+$('svAdd').addEventListener('submit', e => {
   e.preventDefault();
-  const name = $('tName').value.trim();
+  const name = $('svName').value.trim();
   if (!name) return;
-  const certs = [...$('staffAdd').querySelectorAll('input[type=checkbox]:checked')].map(c => c.value);
-  teachers.push({ id: crypto.randomUUID(), name, certs });
+  teachers.push({ id: crypto.randomUUID(), name, certs: [] });
   e.target.reset();
-  saveStaff(); renderStaffList(); render();
+  saveStaff(); renderStaffView();
+  if (children.length) render();
 });
-$('staffList').addEventListener('click', e => {
-  const row = e.target.closest('.staff-row'); if (!row) return;
-  const t = teachers.find(x => x.id === row.dataset.tid); if (!t) return;
-  if (e.target.hasAttribute('data-del')) {
+
+$('svGrid').addEventListener('click', e => {
+  if (e.target.closest('.tc-edit')) return; // mid-edit input, Task 2
+  const card = e.target.closest('.tcard'); if (!card) return;
+  const t = teachers.find(x => x.id === card.dataset.tid); if (!t) return;
+  if (e.target.dataset.cert) {
+    const c = e.target.dataset.cert;
+    t.certs = (t.certs || []).includes(c) ? t.certs.filter(x => x !== c) : [...(t.certs || []), c];
+  } else if (e.target.hasAttribute('data-del')) {
+    if (!confirm(`Remove ${t.name}?`)) return;
     teachers = teachers.filter(x => x.id !== t.id);
     delete staffAssign[t.id];
-  } else if (e.target.hasAttribute('data-rename')) {
-    const name = prompt('Rename teacher', t.name);
-    if (name === null || !name.trim()) return;
-    t.name = name.trim();
-  } else if (e.target.dataset.cert) {
-    const c = e.target.dataset.cert;
-    t.certs = e.target.checked ? [...new Set([...(t.certs||[]), c])] : (t.certs||[]).filter(x => x !== c);
+  } else if (e.target.closest('[data-edit-name]')) {
+    editInPlace(e.target.closest('[data-edit-name]'), t.name, { maxLength: 60 }, v => {
+      const name = (v || '').trim();
+      const taken = name && teachers.some(x => x.id !== t.id && x.name.toLowerCase() === name.toLowerCase());
+      if (name && !taken) { t.name = name; saveStaff(); if (children.length) render(); }
+      renderStaffView();
+    });
+    return;
+  } else if (e.target.closest('[data-edit-wage]')) {
+    editInPlace(e.target.closest('[data-edit-wage]'), t.wage ?? '', { type: 'number', step: '0.25', min: '0' }, v => {
+      if (v === null) { renderStaffView(); return; }
+      const n = parseFloat(v);
+      t.wage = Number.isFinite(n) && n >= 0 ? Math.round(n * 100) / 100 : undefined;
+      saveStaff(); renderStaffView();
+    });
+    return;
   } else return;
-  saveStaff(); renderStaffList(); render();
+  saveStaff(); renderStaffView();
+  if (children.length) render();
 });
 
 // ---------- Excel export (no libraries: minimal .xlsx = zip of XML parts, stored/uncompressed) ----------
@@ -808,6 +909,7 @@ try {
   const saved = localStorage.getItem('victoria-csv');
   if (saved) setData(saved);
 } catch (e) {}
+syncView(); // honor #staff on load / no-CSV boot
 </script>
 </body>
 </html>
