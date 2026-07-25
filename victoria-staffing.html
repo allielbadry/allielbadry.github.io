@@ -359,6 +359,7 @@ function applyOverrides(snap) {
   for (const [k, dest] of moves) { k.moved = true; dest.kids.push(k); }
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
+    room.kids.sort((a, b) => b.age - a.age || a.name.localeCompare(b.name));
     room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
     room.over = room.kids.length > room.cap;
     room.staff = staffFor(room.group, room.kids.length);
