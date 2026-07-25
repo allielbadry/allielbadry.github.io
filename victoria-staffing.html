@@ -535,7 +535,7 @@ function render() {
           ${openLabels.map(c => `<div class="slot-open">${c ? `open · needs ${c}` : 'open'}</div>`).join('')}
         </div>
         <div class="strip-status">
-          ${gaps.length === 0
+          ${gaps.length === 0 && openSlots === 0
             ? '<span class="cstat ok"><span class="dot-s"></span>staff requirement covered</span>'
             : gaps.map(c => `<span class="cstat bad"><span class="dot-s"></span>missing ${c} staff</span>`).join('')}
           ${openSlots ? `<span class="cstat warn"><span class="dot-s"></span>needs ${openSlots} more</span>` : ''}
