@@ -593,11 +593,24 @@ dz.addEventListener('drop', e => {
 });
 // drag kids between rooms (custom what-if view); drag teachers between rooms/bench
 const roomsEl = $('rooms');
+let dragTid = null; // teacher id mid-drag (dataTransfer is unreadable during dragover)
 function chipDragStart(e) {
   const chip = e.target.closest('.tchip');
-  if (chip) { e.dataTransfer.setData('text/plain', 'T:' + chip.dataset.tid); e.dataTransfer.effectAllowed = 'move'; return true; }
+  if (chip) { dragTid = chip.dataset.tid; e.dataTransfer.setData('text/plain', 'T:' + chip.dataset.tid); e.dataTransfer.effectAllowed = 'move'; return true; }
   return false;
 }
+// dropping a teacher on empty space (outside any room or the bench) unassigns them
+document.addEventListener('dragover', e => { if (dragTid) e.preventDefault(); });
+document.addEventListener('drop', e => {
+  if (!dragTid) return;
+  if (!e.target.closest('.room') && !e.target.closest('#benchWrap')) {
+    e.preventDefault();
+    delete staffAssign[dragTid];
+    saveStaff(); render();
+  }
+  dragTid = null;
+});
+document.addEventListener('dragend', () => { dragTid = null; });
 $('bench').addEventListener('dragstart', chipDragStart);
 roomsEl.addEventListener('dragstart', e => {
   if (chipDragStart(e)) return;
