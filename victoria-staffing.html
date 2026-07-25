@@ -342,15 +342,17 @@ function saveOverrides() { try { localStorage.setItem('victoria-overrides', JSON
 
 // Re-seat overridden kids, then recompute staff/over flags per room.
 // Ratio is fixed per room, regardless of which kids are dragged in.
-// An override is a persistent pin: it survives month changes and reloads,
-// but only applies while the kid is still in that room's group — once the
-// kid ages up, natural assignment wins and the pin is ignored.
+// An override is a persistent pin: it survives month changes and reloads.
+// Pins to the same or an older group are allowed (manual early promotion);
+// once the kid naturally ages PAST the pinned room's group, the pin is
+// ignored — natural aging up always wins, and never pins a kid backward.
 function applyOverrides(snap) {
+  const gi = g => GROUP_ORDER.indexOf(g);
   const moves = [];
   for (const room of snap.rooms) {
     room.kids = room.kids.filter(k => {
       const dest = snap.rooms.find(r => r.name === overrides[kidKey(k)]);
-      if (dest && dest !== room && dest.group === k.group) { moves.push([k, dest]); return false; }
+      if (dest && dest !== room && gi(dest.group) >= gi(k.group)) { moves.push([k, dest]); return false; }
       return true;
     });
   }
