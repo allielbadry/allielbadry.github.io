@@ -374,12 +374,27 @@ function snapshot(children, y, m) {
   return { present, future, rooms };
 }
 
-// Alberta cert rule: infant rooms need an IT-certified teacher; toddler and
-// senior rooms need an ECE. ECA fills a slot but never satisfies the rule.
-const REQUIRED_CERT = { infant: 'IT', toddler: 'ECE', senior: 'ECE' };
-function certStatus(group, teacherList) {
-  const need = REQUIRED_CERT[group];
-  return { met: teacherList.some(t => (t.certs || []).includes(need)), need };
+// Per-slot cert rule: infant/toddler rooms — slot 1 (kids 1-4) needs IT,
+// slot 2 (kids 5-8) needs ECE, slot 3+ anyone. Senior rooms — slot 1
+// (kids 1-8) needs ECE, slot 2+ anyone. A teacher covers exactly one slot.
+function slotReqs(group, slots) {
+  const base = group === 'senior' ? ['ECE'] : ['IT', 'ECE'];
+  return Array.from({ length: slots }, (_, i) => base[i] || null);
+}
+// Which required certs can't be covered by matching distinct teachers to
+// required slots (multi-cert teachers count once). Backtracking over every
+// leave-unmet/assign choice; n is tiny (≤3 reqs, a handful of teachers).
+function certGaps(reqs, teacherList) {
+  const need = reqs.filter(Boolean);
+  let best = need;
+  (function go(i, used, missing) {
+    if (i === need.length) { if (missing.length < best.length) best = missing.slice(); return; }
+    for (let j = 0; j < teacherList.length; j++) {
+      if (!(used >> j & 1) && (teacherList[j].certs || []).includes(need[i])) go(i + 1, used | (1 << j), missing);
+    }
+    go(i + 1, used, [...missing, need[i]]);
+  })(0, 0, []);
+  return best;
 }
 // === LOGIC END ===
 
@@ -505,18 +520,24 @@ function render() {
         <span class="age">${k.age} mo</span>
       </div>`).join('');
     const roomTeachers = teachers.filter(t => staffAssign[t.id] === r.name);
-    const cert = certStatus(r.group, roomTeachers);
+    const reqs = slotReqs(r.group, r.staff);
+    const gaps = certGaps(reqs, roomTeachers);
     const openSlots = Math.max(0, r.staff - roomTeachers.length);
-    const tchip = t => `<div class="tchip" draggable="true" data-tid="${esc(t.id)}">${esc(t.name)}${certBadges(t)}</div>`;
+    // open placeholders name the missing required certs first, plain "open" after
+    const openLabels = gaps.slice(0, openSlots);
+    while (openLabels.length < openSlots) openLabels.push(null);
+    const tchip = (t, extra) => `<div class="tchip${extra || ''}" draggable="true" data-tid="${esc(t.id)}">${esc(t.name)}${certBadges(t)}</div>`;
     const strip = r.kids.length === 0 ? '' : `
       <div class="staff-strip">
-        <div class="strip-head">Staff <span class="meta">needs ${r.staff}</span></div>
+        <div class="strip-head">Staff <span class="meta">needs ${r.staff}${reqs.some(Boolean) ? ' · ' + reqs.filter(Boolean).join(' + ') : ''}</span></div>
         <div class="slots">
-          ${roomTeachers.map((t, i) => i < r.staff ? tchip(t) : tchip(t).replace('class="tchip"', 'class="tchip overassigned"')).join('')}
-          ${Array.from({ length: openSlots }, () => '<div class="slot-open">open</div>').join('')}
+          ${roomTeachers.map((t, i) => tchip(t, i < r.staff ? '' : ' overassigned')).join('')}
+          ${openLabels.map(c => `<div class="slot-open">${c ? `open · needs ${c}` : 'open'}</div>`).join('')}
         </div>
         <div class="strip-status">
-          <span class="cstat ${cert.met ? 'ok' : 'bad'}"><span class="dot-s"></span>${cert.met ? `${cert.need} covered` : `needs ${cert.need} cert`}</span>
+          ${gaps.length === 0
+            ? '<span class="cstat ok"><span class="dot-s"></span>certs covered</span>'
+            : gaps.map(c => `<span class="cstat bad"><span class="dot-s"></span>needs ${c}</span>`).join('')}
           ${openSlots ? `<span class="cstat warn"><span class="dot-s"></span>needs ${openSlots} more</span>` : ''}
           ${roomTeachers.length > r.staff ? `<span class="cstat warn"><span class="dot-s"></span>${roomTeachers.length - r.staff} over</span>` : ''}
         </div>
