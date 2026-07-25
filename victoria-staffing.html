@@ -546,8 +546,7 @@ function render() {
       <div class="room ${r.over ? 'over' : ''}" data-room="${esc(r.name)}">
         <div class="room-head"><h3>${r.name}</h3><span class="range">${GROUPS[r.group].range}</span>
           <span class="count">${r.kids.length}/${r.cap}</span></div>
-        <div class="room-staff">Staff needed: <b>${r.staff}</b>
-          ${r.over ? `<span class="overflag"> · ⚠ ${r.kids.length - r.cap} over capacity</span>` : ''}</div>
+        ${r.over ? `<div class="room-staff"><span class="overflag">⚠ ${r.kids.length - r.cap} over capacity</span></div>` : ''}
         <div class="dots">${dots}</div>
         <div class="kids">${kids || '<div class="empty" style="color:var(--ink-soft)">Empty</div>'}</div>
         ${strip}
