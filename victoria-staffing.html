@@ -549,7 +549,7 @@ function render() {
     panel('Starting soon (reserved)', snap.future, k => `<div class="prow"><span class="name">${esc(k.name)}</span>${gtag(k.groupAtStart)}
       <span class="meta">starts ${fmtDate(k.start)}</span></div>`);
 
-  const benched = teachers.filter(t => !staffAssign[t.id] || !snap.rooms.some(r => r.name === staffAssign[t.id]));
+  const benched = teachers.filter(t => !staffAssign[t.id] || !snap.rooms.some(r => r.name === staffAssign[t.id] && r.kids.length > 0));
   $('benchTitle').textContent = `Bench (${benched.length} unassigned)`;
   $('bench').innerHTML = benched.map(t => `<div class="tchip" draggable="true" data-tid="${esc(t.id)}">${esc(t.name)}${certBadges(t)}</div>`).join('')
     || '<div class="empty">Everyone is assigned</div>';
@@ -633,6 +633,7 @@ function renderStaffList() {
       <span class="name">${esc(t.name)}</span>${certBadges(t)}
       <span class="meta">${staffAssign[t.id] ? esc(staffAssign[t.id]) : 'bench'}</span>
       ${CERTS.map(c => `<label><input type="checkbox" data-cert="${c}" ${(t.certs||[]).includes(c) ? 'checked' : ''}>${c}</label>`).join('')}
+      <button type="button" data-rename>Rename</button>
       <button type="button" data-del>Remove</button>
     </div>`).join('') || '<div class="empty">No teachers yet</div>';
 }
@@ -653,6 +654,10 @@ $('staffList').addEventListener('click', e => {
   if (e.target.hasAttribute('data-del')) {
     teachers = teachers.filter(x => x.id !== t.id);
     delete staffAssign[t.id];
+  } else if (e.target.hasAttribute('data-rename')) {
+    const name = prompt('Rename teacher', t.name);
+    if (name === null || !name.trim()) return;
+    t.name = name.trim();
   } else if (e.target.dataset.cert) {
     const c = e.target.dataset.cert;
     t.certs = e.target.checked ? [...new Set([...(t.certs||[]), c])] : (t.certs||[]).filter(x => x !== c);
