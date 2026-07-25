@@ -360,7 +360,16 @@ function applyOverrides(snap) {
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
     room.kids.sort((a, b) => b.age - a.age || a.name.localeCompare(b.name));
-    room.kids.forEach((k, i) => { k.overCapacity = i >= room.cap; });
+    // over-capacity blame: pinned-in kids first (youngest of them), then youngest naturals
+    room.kids.forEach(k => { k.overCapacity = false; });
+    const overflow = room.kids.length - room.cap;
+    if (overflow > 0) {
+      const moved = room.kids.filter(k => k.moved), natural = room.kids.filter(k => !k.moved);
+      const flagged = moved.slice(Math.max(0, moved.length - overflow));
+      const rem = overflow - flagged.length;
+      if (rem > 0) flagged.push(...natural.slice(natural.length - rem));
+      flagged.forEach(k => { k.overCapacity = true; });
+    }
     room.over = room.kids.length > room.cap;
     room.staff = staffFor(room.group, room.kids.length);
   }
