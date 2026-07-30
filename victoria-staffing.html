@@ -467,7 +467,8 @@ function applyOverrides(snap) {
       return true;
     });
   }
-  for (const [k, dest] of moves) { k.moved = true; dest.kids.push(k); }
+  // group follows the room — summary cards and group tags count by k.group
+  for (const [k, dest] of moves) { k.moved = true; k.group = dest.group; dest.kids.push(k); }
   const active = Object.keys(overrides).length > 0;
   for (const room of snap.rooms) {
     room.kids.sort((a, b) => b.age - a.age || a.name.localeCompare(b.name));
