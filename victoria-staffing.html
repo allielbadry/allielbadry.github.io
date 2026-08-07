@@ -454,16 +454,15 @@ function saveStaff() {
 // Re-seat overridden kids, then recompute staff/over flags per room.
 // Ratio is fixed per room, regardless of which kids are dragged in.
 // An override is a persistent pin: it survives month changes and reloads.
-// Pins to the same or an older group are allowed (manual early promotion);
-// once the kid naturally ages PAST the pinned room's group, the pin is
-// ignored — natural aging up always wins, and never pins a kid backward.
+// Any room is a valid destination — forward or backward — so a kid can be
+// held back in Infant or pushed up early. The pin always wins over natural
+// aging; clear it with Reset view to hand the kid back to its age group.
 function applyOverrides(snap) {
-  const gi = g => GROUP_ORDER.indexOf(g);
   const moves = [];
   for (const room of snap.rooms) {
     room.kids = room.kids.filter(k => {
       const dest = snap.rooms.find(r => r.name === overrides[kidKey(k)]);
-      if (dest && dest !== room && gi(dest.group) >= gi(k.group)) { moves.push([k, dest]); return false; }
+      if (dest && dest !== room) { moves.push([k, dest]); return false; }
       return true;
     });
   }
